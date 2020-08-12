@@ -88,6 +88,20 @@ class Sum(Node):
         return tuple(params)
 
 
+class Sum_sharedWeights(Sum):
+    def __init__(self, weights=None, children=None, sibling=None):
+        super(Sum_sharedWeights, self).__init__(weights,children)
+        if sibling is None:
+            siblings = [self]
+        else:
+            sibling.siblings.append(self)
+            siblings = sibling.siblings
+            weights =  sibling.weights
+        self.siblings = siblings
+        self.weights = weights
+
+    # TODO: return siblings params
+
 class Product(Node):
     def __init__(self, children=None):
         Node.__init__(self)
