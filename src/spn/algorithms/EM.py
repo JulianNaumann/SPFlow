@@ -70,9 +70,11 @@ def EM_optimization(spn, data, iterations=5, node_updates=_node_updates, skip_va
 
     lls_per_node = np.zeros((data.shape[0], get_number_of_nodes(spn)))
 
+    node_updates = {Sum: sum_em_update}
+    # print(f"Doing node updates for these nodes: {node_updates.keys()}")
     for _ in range(iterations):
         # one pass bottom up evaluating the likelihoods
-        log_likelihood(spn, data, dtype=data.dtype, lls_matrix=lls_per_node)
+        log_likelihood(spn, data, lls_matrix=lls_per_node)# dtype=data.dtype
 
         gradients = gradient_backward(spn, lls_per_node)
 

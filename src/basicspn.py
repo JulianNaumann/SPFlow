@@ -5,13 +5,12 @@ from spn.algorithms.EM import EM_optimization
 from spn.algorithms.Inference import log_likelihood
 from spn.algorithms.LearningWrappers import learn_parametric
 from spn.structure.Base import Context, Sum, Product, Sum_sharedWeights
-from spn.structure.leaves.parametric.Parametric import Categorical
 from spn.structure.StatisticalTypes import MetaType
 import numpy as np
-from sklearn.datasets.samples_generator import make_blobs
+# from sklearn.datasets.samples_generator import make_blobs
 from spn.io.Graphics import plot_spn
 from spn.io.Text import spn_to_str_equation
-from spn.structure.leaves.parametric.Parametric import Gaussian
+from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian, Bernoulli
 from spn.algorithms.Validity import is_valid
 from numpy.random.mtrand import RandomState
 from spn.algorithms.Sampling import sample_instances
@@ -31,33 +30,64 @@ from spn.structure.Base import assign_ids, rebuild_scopes_bottom_up
 # p1 = Product(children=[g0,g1])
 # spn1 = Sum(weights=[0.5,0.5], children=[p0,p1])
 
-p0 = Product(children=[Categorical(p=[0.3, 0.7], scope=1), Categorical(p=[0.4, 0.6], scope=2)])
-p1 = Product(children=[Categorical(p=[0.5, 0.5], scope=1), Categorical(p=[0.6, 0.4], scope=2)])
-s1 = Sum_sharedWeights(weights=[0.3, 0.7], children=[p0, p1])
-p2 = Product(children=[Categorical(p=[0.2, 0.8], scope=0), s1])
-p3 = Product(children=[Categorical(p=[0.2, 0.8], scope=0), Categorical(p=[0.3, 0.7], scope=1)])
-p4 = Product(children=[p3, Categorical(p=[0.4, 0.6], scope=2)])
-spn = Sum_sharedWeights(sibling=s1, children=[p2, p4])
+
+x = Bernoulli(p=0.9, scope=0)
+y = Bernoulli(p=0.3, scope=1)
+a1 = Bernoulli(p=0.5, scope=2)
+a2 = Bernoulli(p=0.01, scope=2)
+b1 = Bernoulli(p=0.09, scope=3)
+b2 = Bernoulli(p=0.03, scope=3)
+
+s0 = Sum(weights=[0.34,0.66], children=[a1,a2])
+s1 = Sum(weights=[0.34,0.66], children=[b1,b2])
+spn = Product(children=[s0,s1,x,y])
 
 assign_ids(spn)
 rebuild_scopes_bottom_up(spn)
 valid, err = is_valid(spn)
-print(f"Is valid: {valid}")
-# plot_spn(spn, '/Users/julian/Downloads/basicspn-init.png')
-# print(spn_to_str_equation(spn1))
+print(f"Model is valid: {valid}\n")
+# plot_spn(spn, '/Users/julian/Downloads/basic.png')
 
-data = sample_instances(spn, np.array([np.nan, np.nan, np.nan] * 1000).reshape(-1, 3), RandomState(123))
 
+# data = sample_instances(spn, np.array([np.nan, np.nan, np.nan] * 1000).reshape(-1, 3), RandomState(123))
+np.random.seed(1)
+dataX = np.random.binomial(size=300000, n=1, p=0.9)
+dataY = np.random.binomial(size=300000, n=1, p=0.3)
+dataA1 = np.random.binomial(size=100000, n=1, p=0.5)
+dataA2 = np.random.binomial(size=200000, n=1, p=0.01)
+dataA = np.concatenate((dataA1, dataA2))
+dataB1 = np.random.binomial(size=100000, n=1, p=0.09)
+dataB2 = np.random.binomial(size=200000, n=1, p=0.03)
+dataB = np.concatenate((dataB1, dataB2))
+data = np.stack((dataX, dataY, dataA, dataB), axis = 1)
+
+# print(f'{"Sampled from model":60}', end='')
+# sampled_data = sample_instances(spn, np.array([np.nan] * 4 * 300000).reshape(-1,4), RandomState(1))
+# py_ll = np.sum(log_likelihood(spn, sampled_data))
+# print(f'{py_ll,s0.weights, s1.weights}')
+
+print(f'{"Eval of artifical data":60}', end='')
 py_ll = np.sum(log_likelihood(spn, data))
-print(f'Shared weights: {spn.weights}, ll: {py_ll}')
+print(f'{py_ll,s0.weights, s1.weights}')
 
-spn.weights = [0.1, 0.9]
-s1.weights = spn.weights
-# plot_spn(spn, '/Users/julian/Downloads/basicspn-afterChange.png')
+print(f'{"eval of artificial data, after changed weights":60}', end='')
+s0.weights = [0.5, 0.5]
+s1.weights = [0.5, 0.5]
 py_ll = np.sum(log_likelihood(spn, data))
-print(f'Shared weights: {spn.weights}, ll: {py_ll}')
+print(f'{py_ll,s0.weights, s1.weights}')
 
-EM_optimization(spn, data, iterations=1000)
+print(f'{"Eval of artifical data, after EM":60}', end='')
+EM_optimization(spn, data, iterations=10)
+py_ll = np.sum(log_likelihood(spn, data))
+print(f'{py_ll,s0.weights, s1.weights}')
 
-py_ll_opt = np.sum(log_likelihood(spn, data))
-print(f'Shared weights: {spn.weights}, ll: {py_ll}')
+print(f'{"eval of artificial data, after changed weights":60}', end='')
+s0.weights = [0.5, 0.5]
+s1.weights = [0.5, 0.5]
+py_ll = np.sum(log_likelihood(spn, data))
+print(f'{py_ll,s0.weights, s1.weights}')
+
+print(f'{"Eval of artifical data, after EM":60}', end='')
+EM_optimization(spn, data, iterations=50)
+py_ll = np.sum(log_likelihood(spn, data))
+print(f'{py_ll,s0.weights, s1.weights}')
