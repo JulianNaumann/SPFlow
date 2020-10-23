@@ -38,8 +38,9 @@ a2 = Bernoulli(p=0.01, scope=2)
 b1 = Bernoulli(p=0.09, scope=3)
 b2 = Bernoulli(p=0.03, scope=3)
 
-s0 = Sum(weights=[0.34,0.66], children=[a1,a2])
-s1 = Sum(weights=[0.34,0.66], children=[b1,b2])
+s0 = Sum_sharedWeights(weights=[0.34,0.66], children=[a1,a2])
+s1 = Sum_sharedWeights(sibling=s0, children=[b1,b2])
+# s1 = Sum_sharedWeights(weights=[0.34,0.66], children=[b1,b2])
 spn = Product(children=[s0,s1,x,y])
 
 assign_ids(spn)
@@ -70,24 +71,24 @@ print(f'{"Eval of artifical data":60}', end='')
 py_ll = np.sum(log_likelihood(spn, data))
 print(f'{py_ll,s0.weights, s1.weights}')
 
+# print(f'{"Eval of artifical data, after EM":60}', end='')
+# EM_optimization(spn, data, iterations=100)
+# py_ll = np.sum(log_likelihood(spn, data))
+# print(f'{py_ll,s0.weights, s1.weights}')
+
 print(f'{"eval of artificial data, after changed weights":60}', end='')
-s0.weights = [0.5, 0.5]
-s1.weights = [0.5, 0.5]
+s0.weights[0] = s0.weights[1] = 0.5
 py_ll = np.sum(log_likelihood(spn, data))
 print(f'{py_ll,s0.weights, s1.weights}')
 
 print(f'{"Eval of artifical data, after EM":60}', end='')
-EM_optimization(spn, data, iterations=10)
+EM_optimization(spn, data, iterations=150)
 py_ll = np.sum(log_likelihood(spn, data))
 print(f'{py_ll,s0.weights, s1.weights}')
 
-print(f'{"eval of artificial data, after changed weights":60}', end='')
-s0.weights = [0.5, 0.5]
-s1.weights = [0.5, 0.5]
-py_ll = np.sum(log_likelihood(spn, data))
-print(f'{py_ll,s0.weights, s1.weights}')
-
-print(f'{"Eval of artifical data, after EM":60}', end='')
-EM_optimization(spn, data, iterations=50)
-py_ll = np.sum(log_likelihood(spn, data))
-print(f'{py_ll,s0.weights, s1.weights}')
+# non-shared
+# print(f'{"eval of artificial data, after changed weights":60}', end='')
+# s0.weights = [0.5, 0.5]
+# s1.weights = [0.5, 0.5]
+# py_ll = np.sum(log_likelihood(spn, data))
+# print(f'{py_ll,s0.weights, s1.weights}')

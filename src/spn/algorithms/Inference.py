@@ -46,7 +46,7 @@ def sum_log_likelihood(node, children, dtype=np.float64, **kwargs):
     llchildren = np.concatenate(children, axis=1)
     assert llchildren.dtype == dtype
 
-    assert np.isclose(np.sum(node.weights), 1.0), "unnormalized weights {} for node {}".format(node.weights, node)
+    #assert np.isclose(np.sum(node.weights), 1.0), "unnormalized weights {} for node {}".format(node.weights, node)
 
     b = np.array(node.weights, dtype=dtype)
 

@@ -40,8 +40,9 @@ def sum_em_update(node, node_gradients=None, root_lls=None, all_lls=None, **kwar
     assert node.weights.sum() <= 1, "sum: {}, node weights: {}".format(node.weights.sum(), node.weights)
 
 
-def sum_em_update_shared(node, all_gradients=None, root_lls=None, all_lls=None, spn=None, data=None, **kwargs):
+def sum_em_update_shared(node, all_gradients=None, root_lls=None, all_lls=None, weights=None, spn=None, data=None, **kwargs):
 
+    # TODO: check b formula
     def beta(w_old, node_gradients, node_lls):
         b = w_old * (root_lls**-1 * node_gradients * node_lls).sum()
         return b
@@ -49,11 +50,11 @@ def sum_em_update_shared(node, all_gradients=None, root_lls=None, all_lls=None, 
     for j in range(len(node.weights)):
         num = 0
         for qs in node.siblings:
-            num += beta(qs.weights[j], all_gradients[:,qs.id], all_lls[:,qs.id])
+            num += beta(weights[qs.id][j], all_gradients[:,qs.id], all_lls[:,qs.id])
         normalisation = 0
         for i in range(len(node.weights)):
             for qs in node.siblings:
-                normalisation += beta(qs.weights[i], all_gradients[:,qs.id], all_lls[:,qs.id])
+                normalisation += beta(weights[qs.id][i], all_gradients[:,qs.id], all_lls[:,qs.id])
         node.weights[j] = num / normalisation
 
 _node_updates = {Sum: sum_em_update, Sum_sharedWeights: sum_em_update_shared}
@@ -70,13 +71,15 @@ def EM_optimization(spn, data, iterations=5, node_updates=_node_updates, skip_va
 
     lls_per_node = np.zeros((data.shape[0], get_number_of_nodes(spn)))
 
-    node_updates = {Sum: sum_em_update}
-    # print(f"Doing node updates for these nodes: {node_updates.keys()}")
+    node_updates = {Sum_sharedWeights: sum_em_update_shared}
     for _ in range(iterations):
         # one pass bottom up evaluating the likelihoods
         log_likelihood(spn, data, lls_matrix=lls_per_node)# dtype=data.dtype
 
         gradients = gradient_backward(spn, lls_per_node)
+
+        weights = [node.weights if isinstance(node, Sum) else None for node in get_nodes_by_type(spn)]
+        #nodes = get_nodes_by_type(spn)
 
         R = lls_per_node[:, 0]
 
@@ -91,5 +94,6 @@ def EM_optimization(spn, data, iterations=5, node_updates=_node_updates, skip_va
                     all_gradients=gradients,
                     data=data,
                     spn=spn,
+                    weights=weights,
                     **kwargs
                 )

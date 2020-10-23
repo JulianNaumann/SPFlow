@@ -96,7 +96,7 @@ class Sum_sharedWeights(Sum):
         else:
             sibling.siblings.append(self)
             siblings = sibling.siblings
-            weights =  sibling.weights
+            weights =  sibling.weights[:]
         self.siblings = siblings
         self.weights = weights
 
