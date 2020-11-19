@@ -15,6 +15,12 @@ from spn.algorithms.Validity import is_valid
 from numpy.random.mtrand import RandomState
 from spn.algorithms.Sampling import sample_instances
 
+import matplotlib.pyplot as plt
+#from matplotlib import interactive
+
+#interactive(True)
+
+
 from spn.structure.Base import assign_ids, rebuild_scopes_bottom_up
 
 
@@ -39,8 +45,8 @@ b1 = Bernoulli(p=0.09, scope=3)
 b2 = Bernoulli(p=0.03, scope=3)
 
 s0 = Sum_sharedWeights(weights=[0.34,0.66], children=[a1,a2])
+# s1 = Sum_sharedWeights(sibling=s0, children=[b1,b2])
 s1 = Sum_sharedWeights(sibling=s0, children=[b1,b2])
-# s1 = Sum_sharedWeights(weights=[0.34,0.66], children=[b1,b2])
 spn = Product(children=[s0,s1,x,y])
 
 assign_ids(spn)
@@ -52,39 +58,72 @@ print(f"Model is valid: {valid}\n")
 
 # data = sample_instances(spn, np.array([np.nan, np.nan, np.nan] * 1000).reshape(-1, 3), RandomState(123))
 np.random.seed(1)
-dataX = np.random.binomial(size=300000, n=1, p=0.9)
-dataY = np.random.binomial(size=300000, n=1, p=0.3)
-dataA1 = np.random.binomial(size=100000, n=1, p=0.5)
-dataA2 = np.random.binomial(size=200000, n=1, p=0.01)
+dataX = np.random.binomial(size=3000, n=1, p=0.9)
+dataY = np.random.binomial(size=3000, n=1, p=0.3)
+dataA1 = np.random.binomial(size=1000, n=1, p=0.5)
+dataA2 = np.random.binomial(size=2000, n=1, p=0.01)
 dataA = np.concatenate((dataA1, dataA2))
-dataB1 = np.random.binomial(size=100000, n=1, p=0.09)
-dataB2 = np.random.binomial(size=200000, n=1, p=0.03)
+dataB1 = np.random.binomial(size=1000, n=1, p=0.09)
+dataB2 = np.random.binomial(size=2000, n=1, p=0.03)
 dataB = np.concatenate((dataB1, dataB2))
 data = np.stack((dataX, dataY, dataA, dataB), axis = 1)
 
+# Sample testing
 # print(f'{"Sampled from model":60}', end='')
 # sampled_data = sample_instances(spn, np.array([np.nan] * 4 * 300000).reshape(-1,4), RandomState(1))
 # py_ll = np.sum(log_likelihood(spn, sampled_data))
 # print(f'{py_ll,s0.weights, s1.weights}')
 
+# EM testing
 print(f'{"Eval of artifical data":60}', end='')
-py_ll = np.sum(log_likelihood(spn, data))
-print(f'{py_ll,s0.weights, s1.weights}')
+py_ll = np.mean(log_likelihood(spn, data))
+print(f'{py_ll:.8f},[{s0.weights[0]:.4f},{s0.weights[1]:.4f}], [{s1.weights[0]:.4f},{s1.weights[1]:.4f}]')
+
+# print(f'{"eval of artificial data, after changed weights":60}', end='')
+# s0.weights[0] = s1.weights[0] = 0.1
+# s0.weights[1] = s1.weights[1] = 0.9
+# s0.weights[0] = s0.weights[1] = 0.5
+# py_ll = np.mean(log_likelihood(spn, data))
+# print(f'{py_ll:.8f},[{s0.weights[0]:.4f},{# s0.weights[1]:.4f}], [{s1.weights[0]:.4f},{s1.weights[1]:.4f}]')
 
 # print(f'{"Eval of artifical data, after EM":60}', end='')
-# EM_optimization(spn, data, iterations=100)
-# py_ll = np.sum(log_likelihood(spn, data))
-# print(f'{py_ll,s0.weights, s1.weights}')
+# EM_optimization(spn, data, iterations=1000)
+# py_ll = np.mean(log_likelihood(spn, data))
+# print(f'{py_ll:.8f},[{s0.weights[0]:.4f},{s0.weights[1]:.4f}], [{s1.weights[0]:.4f},{s1.weights[1]:.4f}]')
 
-print(f'{"eval of artificial data, after changed weights":60}', end='')
-s0.weights[0] = s0.weights[1] = 0.5
-py_ll = np.sum(log_likelihood(spn, data))
-print(f'{py_ll,s0.weights, s1.weights}')
+# print(f'{"Eval of artifical data, after EM":60}', end='')
+# EM_optimization(spn, data, iterations=1000)
+# py_ll = np.mean(log_likelihood(spn, data))
+# print(f'{py_ll:.8f},[{s0.weights[0]:.4f},{s0.weights[1]:.4f}], [{s1.weights[0]:.4f},{s1.weights[1]:.4f}]')
 
-print(f'{"Eval of artifical data, after EM":60}', end='')
-EM_optimization(spn, data, iterations=150)
-py_ll = np.sum(log_likelihood(spn, data))
-print(f'{py_ll,s0.weights, s1.weights}')
+print(f'{"Eval of artifical data":60}', end='')
+lls = []
+for i in range(100):
+    ll = np.mean(log_likelihood(spn, data))
+    lls.append(ll)
+    EM_optimization(spn, data, iterations=1)
+
+plt.plot(range(100), lls)
+plt.show()
+py_ll = np.mean(log_likelihood(spn, data))
+print(f'{py_ll:.8f},[{s0.weights[0]:.4f},{s0.weights[1]:.4f}], [{s1.weights[0]:.4f},{s1.weights[1]:.4f}]')
+
+
+s0.weights[0] = s1.weights[0] = 0.66
+s0.weights[1] = s1.weights[1] = 0.34
+
+
+print(f'{"Eval of artifical data":60}', end='')
+lls = []
+for i in range(100):
+    ll = np.mean(log_likelihood(spn, data))
+    lls.append(ll)
+    EM_optimization(spn, data, iterations=1)
+
+plt.plot(range(100), lls)
+plt.show()
+py_ll = np.mean(log_likelihood(spn, data))
+print(f'{py_ll:.8f},[{s0.weights[0]:.4f},{s0.weights[1]:.4f}], [{s1.weights[0]:.4f},{s1.weights[1]:.4f}]')
 
 # non-shared
 # print(f'{"eval of artificial data, after changed weights":60}', end='')
@@ -92,3 +131,20 @@ print(f'{py_ll,s0.weights, s1.weights}')
 # s1.weights = [0.5, 0.5]
 # py_ll = np.sum(log_likelihood(spn, data))
 # print(f'{py_ll,s0.weights, s1.weights}')
+
+# lls = []
+# weights = np.array(range(100)) / np.array([100.0] * 100)
+# for w in weights:
+#     s0.weights[0] = s1.weights[0] = w
+#     s0.weights[1] = s1.weights[1] = 1 - w
+#     ll = np.mean(log_likelihood(spn,data))
+#     lls.append(ll)
+#
+#
+# fig, ax = plt.subplots()
+# ax.plot(weights, lls)
+# max_ll = max(lls)
+# max_w = weights[lls.index(max_ll)]
+# print(max_ll, max_w)
+# ax.annotate(f'local max @ ({max_w},{max_ll})', xy=(max_w,max_ll), xytext=(max_w,max_ll),arrowprops=dict(facecolor='black', shrink=0.05))
+# plt.show()
