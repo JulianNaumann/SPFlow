@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 from spn.algorithms.Inference import log_likelihood
-from spn.structure.Base import eval_spn_top_down, Sum, Product, Leaf, get_number_of_nodes, get_nodes_by_type
+from spn.structure.Base import eval_spn_top_down, Sum, Sum_sharedWeights, Product, Leaf, get_number_of_nodes, get_nodes_by_type
 
 
 def merge_gradients(parent_gradients):
@@ -63,7 +63,7 @@ def prod_gradient_backward(node, parent_result, gradient_result=None, lls_per_no
     return messages_to_children
 
 
-_node_gradients = {Sum: sum_gradient_backward, Product: prod_gradient_backward, Leaf: leaf_gradient_backward}
+_node_gradients = {Sum: sum_gradient_backward, Sum_sharedWeights: sum_gradient_backward, Product: prod_gradient_backward, Leaf: leaf_gradient_backward}
 _node_feature_gradients = {}
 
 

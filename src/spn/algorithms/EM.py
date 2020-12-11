@@ -43,18 +43,24 @@ def sum_em_update(node, node_gradients=None, root_lls=None, all_lls=None, **kwar
 def sum_em_update_shared(node, all_gradients=None, root_lls=None, all_lls=None, weights=None, **kwargs):
 
     def beta(w_old, node_gradients, child_lls):
-        b = w_old * (np.exp(root_lls)**-1 * node_gradients * np.exp(child_lls)).sum()
+        b = w_old * (np.exp(root_lls)**-1 *
+                     node_gradients *
+                     np.exp(child_lls)).sum()
         return b
 
     normalisation = 0
     for i in range(len(node.weights)):
         for qs in node.siblings:
-            normalisation += beta(weights[qs.id][i], all_gradients[:, qs.id], all_lls[:, qs.children[i].id])
+            normalisation += beta(weights[qs.id][i],
+                                  all_gradients[:, qs.id],
+                                  all_lls[:, qs.children[i].id])
 
     for j in range(len(node.weights)):
         num = 0
         for qs in node.siblings:
-            num += beta(weights[qs.id][j], all_gradients[:,qs.id], all_lls[:,qs.children[j].id])
+            num += beta(weights[qs.id][j],
+                        all_gradients[:,qs.id],
+                        all_lls[:,qs.children[j].id])
         node.weights[j] = num / normalisation
 
 _node_updates = {Sum: sum_em_update, Sum_sharedWeights: sum_em_update_shared}
@@ -71,14 +77,14 @@ def EM_optimization(spn, data, iterations=5, node_updates=_node_updates, skip_va
 
     lls_per_node = np.zeros((data.shape[0], get_number_of_nodes(spn)))
 
-    node_updates = {Sum_sharedWeights: sum_em_update_shared}
+    # node_updates = {Sum_sharedWeights: sum_em_update_shared}
     for _ in range(iterations):
         # one pass bottom up evaluating the likelihoods
         log_likelihood(spn, data, lls_matrix=lls_per_node)# dtype=data.dtype
 
         gradients = gradient_backward(spn, lls_per_node)
 
-        weights = [node.weights if isinstance(node, Sum) else None for node in get_nodes_by_type(spn)]
+        weights = [node.weights if isinstance(node, Sum_sharedWeights) else None for node in get_nodes_by_type(spn)]
 
         R = lls_per_node[:, 0]
         for node_type, func in node_updates.items():

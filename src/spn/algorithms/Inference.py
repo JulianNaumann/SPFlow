@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from scipy.special import logsumexp
 
-from spn.structure.Base import Product, Sum, eval_spn_bottom_up
+from spn.structure.Base import Product, Sum, Sum_sharedWeights, eval_spn_bottom_up
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,8 @@ def sum_likelihood(node, children, dtype=np.float64, **kwargs):
     return np.dot(llchildren, b).reshape(-1, 1)
 
 
-_node_log_likelihood = {Sum: sum_log_likelihood, Product: prod_log_likelihood}
-_node_likelihood = {Sum: sum_likelihood, Product: prod_likelihood}
+_node_log_likelihood = {Sum: sum_log_likelihood, Sum_sharedWeights: sum_log_likelihood, Product: prod_log_likelihood}
+_node_likelihood = {Sum: sum_likelihood, Sum_sharedWeights: sum_likelihood, Product: prod_likelihood}
 
 
 def _get_exp_likelihood(f_log):
